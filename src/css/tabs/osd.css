@@ -771,3 +771,116 @@
     background-color: #3394b5;
     transition: all ease 0.2s;
 }
+
+.tab-osd #osdPreviewFontSelect {
+    width: 100%;
+    max-width: 100%;
+    min-width: 260px;
+    box-sizing: border-box;
+}
+
+.tab-osd #osdPreviewFontRow {
+    width: 100%;
+}
+
+.tab-osd #osdImportHdFontPack,
+.tab-osd #osdRemoveHdFontPack,
+.tab-osd #osdFullscreenPreview,
+.tab-osd #osdFullscreenPreviewClose {
+    padding: 2px 7px !important;
+    font-size: 8pt !important;
+    height: 22px;
+    line-height: 16px;
+}
+
+.tab-osd .settings .osd-preview-control-row {
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid #ddd;
+    margin-top: 5px;
+    padding-bottom: 5px;
+}
+
+.tab-osd .osd-fullscreen-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: #101010;
+    color: #fff;
+    box-sizing: border-box;
+    padding: 8px;
+}
+
+.tab-osd .osd-fullscreen-preview-titlebar {
+    height: 28px;
+    line-height: 24px;
+}
+
+.tab-osd #osdFullscreenPreviewTitle {
+    display: inline-block;
+    max-width: calc(100% - 90px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tab-osd #osdFullscreenPreviewClose {
+    float: right;
+}
+
+.tab-osd .osd-fullscreen-preview-viewport {
+    width: 100%;
+    height: calc(100% - 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tab-osd .osd-fullscreen-preview-scale {
+    transform-origin: top left;
+}
+
+.tab-osd .osd-fullscreen-preview-grid {
+    background: url(./../../../images/osd-bg-1.jpg) center center / cover no-repeat;
+    line-height: 0;
+}
+
+.tab-osd .osd-fullscreen-preview-grid .char[draggable="true"] {
+    cursor: move;
+}
+
+
+/* Fullscreen HD OSD preview reuses the normal preview grid instead of cloning it.
+ * The cell size is set from the selected font file and fitted to the viewport.
+ */
+.osd-fullscreen-preview-overlay .display-layout {
+    margin: 0 auto;
+}
+
+.osd-fullscreen-preview-overlay .display-layout > .col.right {
+    float: none;
+    margin: 0;
+}
+
+.osd-fullscreen-preview-overlay .display-layout .preview {
+    width: max-content !important;
+    background: url(./../../../images/osd-bg-1.jpg) center center / cover no-repeat !important;
+}
+
+.osd-fullscreen-preview-overlay .display-layout .preview .row {
+    height: var(--osd-fullscreen-cell-height);
+    line-height: 0;
+    white-space: nowrap;
+}
+
+.osd-fullscreen-preview-overlay .display-layout .preview .char {
+    width: var(--osd-fullscreen-cell-width);
+    height: var(--osd-fullscreen-cell-height);
+    line-height: 0;
+}
+
+.osd-fullscreen-preview-overlay .display-layout .preview .char img {
+    width: var(--osd-fullscreen-cell-width);
+    height: var(--osd-fullscreen-cell-height);
+}

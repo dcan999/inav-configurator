@@ -71,6 +71,17 @@
                         <label id="videoGuides">
                            <span data-i18n="osd_video_show_guides"></span>
                         </label>
+                        <label id="osdPreviewFontRow">
+                            <select id="osdPreviewFontSelect"></select>
+                            <span>OSD Preview Font File</span>
+                        </label>
+                        <div id="osdImportHdFontPackRow" class="osd-preview-control-row">
+                            <button type="button" id="osdImportHdFontPack">Import HD Font Pack</button>
+                            <button type="button" id="osdRemoveHdFontPack">Remove Imported Font</button>
+                        </div>
+                        <div id="osdFullscreenPreviewRow" class="osd-preview-control-row">
+                            <button type="button" id="osdFullscreenPreview">Fullscreen Preview</button>
+                        </div>
                     </div>
                 </div>
                 <div class="gui_box grey settings-container">
@@ -481,6 +492,17 @@
                 <div class="font-picker" style="margin-bottom: 10px;">
                     <h1 class="tab_title">Font:</h1>
                     <div class="content_wrapper font-preview"></div>
+                </div>
+            </div>
+            <div id="osdFullscreenPreviewOverlay" class="osd-fullscreen-preview-overlay hide">
+                <div class="osd-fullscreen-preview-titlebar">
+                    <span id="osdFullscreenPreviewTitle"></span>
+                    <button type="button" id="osdFullscreenPreviewClose">Close</button>
+                </div>
+                <div id="osdFullscreenPreviewViewport" class="osd-fullscreen-preview-viewport">
+                    <div id="osdFullscreenPreviewScale" class="osd-fullscreen-preview-scale">
+                        <div id="osdFullscreenPreviewGrid" class="osd-fullscreen-preview-grid"></div>
+                    </div>
                 </div>
             </div>
             <div class="clear-both"></div>

@@ -361,6 +361,17 @@ app.whenReady().then(() => {
     });
   });
 
+  ipcMain.handle('readBinaryFile', (_event, filename) => {
+    return new Promise(async resolve => {
+      try {
+        const data = await readFile(filename);
+        resolve({error: false, data: Array.from(data)});
+      } catch (err) {
+        resolve({error: err});
+      }
+    });
+  });
+
   ipcMain.handle('chmod', (_event, pathName, mode) => {
     return new Promise(resolve => {
       chmod(path.join(getSitlBasePath(), pathName), mode, error => {

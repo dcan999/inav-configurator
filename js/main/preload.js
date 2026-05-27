@@ -73,6 +73,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFile: (filename, data) => ipcRenderer.invoke('writeFile', filename, data),
   appendFile: (filename, data) => ipcRenderer.invoke('appendFile', filename, data),
   readFile: (filename, encoding = 'utf8') => ipcRenderer.invoke('readFile', filename, encoding),
+  readBinaryFile: (filename) => ipcRenderer.invoke('readBinaryFile', filename),
   rm: (path) => ipcRenderer.invoke('rm', path),
   chmod: (path, mode) => ipcRenderer.invoke('chmod', path, mode),
   startChildProcess: (command, args, opts) => ipcRenderer.send('startChildProcess', command, args, opts),

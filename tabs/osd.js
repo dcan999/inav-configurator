@@ -17,6 +17,7 @@ import { PortHandler } from './../js/port_handler';
 import i18n from './../js/localization';
 import store from './../js/store';
 import dialog from './../js/dialog';
+import JSZip from 'jszip';
 
 var SYM = SYM || {};
 SYM.LAST_CHAR = 225; // For drawing the font preview
@@ -323,6 +324,497 @@ FONT.draw = function (charAddress) {
         cached = FONT.data.character_image_urls[charAddress] = drawCanvas(charAddress).toDataURL('image/png');
     }
     return cached;
+};
+
+const OSD_PREVIEW_IMPORTED_HD_FONTS_KEY = 'osdPreviewImportedHdFonts';
+
+FONT.previewFont = {
+    key: 'default',
+    image: null,
+    imageLoaded: false,
+    cache: {},
+    staticFonts: {
+        default: {
+            label: 'Default',
+            type: 'builtin'
+        }
+    },
+    fonts: {}
+};
+
+FONT.resetPreviewFontList = function () {
+    FONT.previewFont.fonts = Object.assign({}, FONT.previewFont.staticFonts);
+};
+
+FONT.importedPreviewFontIdentity = function (font) {
+    if (!font) {
+        return '';
+    }
+
+    return [
+        font.sourceFile || '',
+        font.sectionName || '',
+        font.label || '',
+        font.resolutionLabel || ''
+    ].join('|');
+};
+
+FONT.deduplicateImportedPreviewFonts = function (fonts) {
+    const byIdentity = {};
+
+    (fonts || []).forEach(function (font) {
+        const dataUrl = font ? font.dataUrl : null;
+
+        if (!font || !font.key || !dataUrl) {
+            return;
+        }
+
+        byIdentity[FONT.importedPreviewFontIdentity(font)] = font;
+    });
+
+    return Object.keys(byIdentity).map(function (identity) {
+        return byIdentity[identity];
+    });
+};
+
+FONT.loadImportedPreviewFonts = function () {
+    FONT.resetPreviewFontList();
+
+    const importedFonts = store.get(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, []);
+    const deduplicatedFonts = FONT.deduplicateImportedPreviewFonts(importedFonts);
+
+    if (deduplicatedFonts.length !== importedFonts.length) {
+        store.set(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, deduplicatedFonts);
+    }
+
+    deduplicatedFonts.forEach(function (font) {
+        if (font && font.key && font.dataUrl) {
+            FONT.previewFont.fonts[font.key] = {
+                label: font.label,
+                type: 'avatar_png',
+                path: font.dataUrl,
+                glyphWidth: font.glyphWidth || 24,
+                glyphHeight: font.glyphHeight || 36,
+                compactWidth: FONT.constants.SIZES.CHAR_WIDTH,
+                compactHeight: FONT.constants.SIZES.CHAR_HEIGHT,
+                imported: true,
+                sourceFile: font.sourceFile || '',
+                sectionName: font.sectionName || '',
+                resolutionLabel: font.resolutionLabel || ''
+            };
+        }
+    });
+};
+
+FONT.populatePreviewFontSelect = function () {
+    const $select = $('#osdPreviewFontSelect');
+
+    if (!$select.length) {
+        return;
+    }
+
+    const previousValue = FONT.previewFont.key;
+
+    $select.empty();
+
+    Object.keys(FONT.previewFont.fonts).forEach(function (key) {
+        const font = FONT.previewFont.fonts[key];
+        const displayLabel = font.sourceFile ? (font.sourceFile + ' / ' + font.label) : font.label;
+        $select.append($('<option/>').val(key).text(displayLabel));
+    });
+
+    if (!FONT.previewFont.fonts[previousValue]) {
+        FONT.previewFont.key = 'default';
+    }
+
+    $select.val(FONT.previewFont.key);
+};
+
+FONT.parseFontUpdateIni = function (data) {
+    const sections = {};
+    let currentSection = null;
+
+    data.split(/\r?\n/).forEach(function (rawLine) {
+        const line = rawLine.replace(/;.*/, '').trim();
+
+        if (!line) {
+            return;
+        }
+
+        const sectionMatch = line.match(/^\[(.+)]$/);
+
+        if (sectionMatch) {
+            currentSection = sectionMatch[1].trim();
+            sections[currentSection] = sections[currentSection] || {};
+            return;
+        }
+
+        const keyValueMatch = line.match(/^([^=]+)=(.*)$/);
+
+        if (currentSection && keyValueMatch) {
+            sections[currentSection][keyValueMatch[1].trim()] = keyValueMatch[2].trim();
+        }
+    });
+
+    return sections;
+};
+
+FONT.findZipFileByName = function (zip, fileName, basePath) {
+    const normalizedName = fileName.replace(/\\/g, '/').split('/').pop().toLowerCase();
+    const normalizedBase = basePath ? basePath.replace(/\\/g, '/').replace(/\/?[^/]*$/, '/') : '';
+    const exactPath = normalizedBase + fileName.replace(/\\/g, '/');
+
+    if (zip.file(exactPath)) {
+        return zip.file(exactPath);
+    }
+
+    let found = null;
+
+    zip.forEach(function (relativePath, file) {
+        if (file.dir || found) {
+            return;
+        }
+
+        if (relativePath.replace(/\\/g, '/').split('/').pop().toLowerCase() === normalizedName) {
+            found = file;
+        }
+    });
+
+    return found;
+};
+
+FONT.readPngDimensions = function (dataUrl) {
+    return new Promise(function (resolve, reject) {
+        const img = new Image();
+
+        img.onload = function () {
+            resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+
+        img.onerror = function () {
+            reject(new Error('Could not read PNG dimensions'));
+        };
+
+        img.src = dataUrl;
+    });
+};
+
+FONT.importHdFontPack = async function () {
+    try {
+        const result = await dialog.showOpenDialog({
+            filters: [
+                { name: 'Walksnail HD font pack', extensions: ['zip'] }
+            ],
+            properties: ['openFile']
+        });
+
+        if (result.canceled || result.filePaths.length !== 1) {
+            return;
+        }
+
+        const filePath = result.filePaths[0];
+        const response = await window.electronAPI.readBinaryFile(filePath);
+
+        if (response.error) {
+            GUI.log('Error reading HD font pack: ' + response.error);
+            console.log(response.error);
+            return;
+        }
+
+        const zip = await JSZip.loadAsync(new Uint8Array(response.data));
+        let iniPath = null;
+        let iniFile = null;
+
+        zip.forEach(function (relativePath, file) {
+            if (!file.dir && relativePath.replace(/\\/g, '/').split('/').pop().toLowerCase() === 'font_update.ini') {
+                iniPath = relativePath;
+                iniFile = file;
+            }
+        });
+
+        if (!iniFile) {
+            GUI.log('No font_update.ini found in HD font pack');
+            return;
+        }
+
+        const iniData = await iniFile.async('string');
+        const ini = FONT.parseFontUpdateIni(iniData);
+        const config = ini.config || ini.Config || ini.CONFIG;
+
+        if (!config) {
+            GUI.log('HD font pack has no [config] section');
+            return;
+        }
+
+        const count = parseInt(config.count || 0);
+        const importedFonts = store.get(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, []);
+        const importedKeys = [];
+        const sourceFile = filePath.split(/[\\/]/).pop();
+
+        const importCandidate = async function (sectionName, imgName, glyphWidth, glyphHeight, resolutionLabel) {
+            if (!imgName) {
+                return;
+            }
+
+            const pngFile = FONT.findZipFileByName(zip, imgName, iniPath);
+
+            if (!pngFile) {
+                GUI.log('HD font pack missing PNG: ' + imgName);
+                return;
+            }
+
+            const base64 = await pngFile.async('base64');
+            const dataUrl = 'data:image/png;base64,' + base64;
+            const dimensions = await FONT.readPngDimensions(dataUrl);
+            const expectedWidth = glyphWidth * 2;
+            const expectedHeight = glyphHeight * 256;
+
+            if (dimensions.width !== expectedWidth || dimensions.height !== expectedHeight) {
+                GUI.log('Skipped HD font "' + imgName + '" because PNG dimensions are ' + dimensions.width + 'x' + dimensions.height + ', expected ' + expectedWidth + 'x' + expectedHeight);
+                return;
+            }
+
+            const label = imgName.replace(/\\/g, '/').split('/').pop();
+            const safeName = (sourceFile + '_' + sectionName + '_' + label)
+                .replace(/[^a-z0-9]+/ig, '_')
+                .replace(/^_+|_+$/g, '')
+                .toLowerCase();
+            const key = 'imported_' + safeName;
+
+            const isSameImportedFont = function (font) {
+                return font.key === key || (
+                    font.sourceFile === sourceFile &&
+                    font.sectionName === sectionName &&
+                    font.label === label &&
+                    font.resolutionLabel === resolutionLabel
+                );
+            };
+
+            const existingFont = importedFonts.find(isSameImportedFont);
+            const now = new Date().toISOString();
+
+            for (let duplicateIndex = importedFonts.length - 1; duplicateIndex >= 0; duplicateIndex--) {
+                if (isSameImportedFont(importedFonts[duplicateIndex])) {
+                    importedFonts.splice(duplicateIndex, 1);
+                }
+            }
+
+            importedFonts.push({
+                key: key,
+                label: label,
+                type: 'avatar_png',
+                dataUrl: dataUrl,
+                glyphWidth: glyphWidth,
+                glyphHeight: glyphHeight,
+                importedAt: existingFont && existingFont.importedAt ? existingFont.importedAt : now,
+                updatedAt: now,
+                sourceFile: sourceFile,
+                sectionName: sectionName,
+                resolutionLabel: resolutionLabel
+            });
+
+            importedKeys.push(key);
+        };
+
+        for (let i = 1; i <= count; i++) {
+            const sectionName = config[String(i)];
+
+            if (!sectionName || !ini[sectionName]) {
+                continue;
+            }
+
+            const section = ini[sectionName];
+
+            await importCandidate(
+                sectionName,
+                section.imgname_720,
+                parseInt(section.font_width_720 || 24),
+                parseInt(section.font_height_720 || 36),
+                '720p'
+            );
+
+            await importCandidate(
+                sectionName,
+                section.imgname_1080,
+                parseInt(section.font_width_1080 || 36),
+                parseInt(section.font_height_1080 || 54),
+                '1080p'
+            );
+        }
+
+        if (!importedKeys.length) {
+            GUI.log('No valid Walksnail 720p/1080p fonts were imported');
+            return;
+        }
+
+        store.set(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, importedFonts);
+        FONT.loadImportedPreviewFonts();
+
+        FONT.previewFont.key = importedKeys[importedKeys.length - 1];
+        store.set('osdPreviewFont', FONT.previewFont.key);
+
+        FONT.populatePreviewFontSelect();
+        FONT.loadPreviewFont();
+
+        GUI.log('Imported HD font pack: ' + importedKeys.length + ' font file(s)');
+    } catch (err) {
+        GUI.log('Failed to import HD font pack: ' + (err && err.message ? err.message : err));
+        console.log(err);
+    }
+};
+
+FONT.removeSelectedImportedPreviewFont = function () {
+    const selectedKey = FONT.previewFont.key;
+    const selectedFont = FONT.previewFont.fonts[selectedKey];
+
+    if (!selectedFont || !selectedFont.imported) {
+        GUI.log('Only imported HD font files can be removed');
+        return;
+    }
+
+    const selectedIdentity = FONT.importedPreviewFontIdentity(selectedFont);
+    const importedFonts = store.get(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, []);
+    const remainingFonts = importedFonts.filter(function (font) {
+        return font.key !== selectedKey && FONT.importedPreviewFontIdentity(font) !== selectedIdentity;
+    });
+
+    store.set(OSD_PREVIEW_IMPORTED_HD_FONTS_KEY, remainingFonts);
+
+    FONT.loadImportedPreviewFonts();
+    FONT.previewFont.key = 'default';
+    store.set('osdPreviewFont', FONT.previewFont.key);
+    FONT.populatePreviewFontSelect();
+    FONT.loadPreviewFont();
+
+    GUI.log('Removed imported HD font file');
+};
+
+FONT.loadPreviewFont = function () {
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+
+    FONT.previewFont.cache = {};
+    FONT.previewFont.image = null;
+    FONT.previewFont.imageLoaded = false;
+
+    if (!font || font.type !== 'avatar_png') {
+        if (typeof OSD !== 'undefined' && OSD.GUI && OSD.GUI.updatePreviews) {
+            OSD.GUI.updatePreviews();
+        }
+        return;
+    }
+
+    const img = new Image();
+
+    img.onload = function () {
+        FONT.previewFont.image = img;
+        FONT.previewFont.imageLoaded = true;
+
+        if (typeof OSD !== 'undefined' && OSD.GUI && OSD.GUI.updatePreviews) {
+            OSD.GUI.updatePreviews();
+        }
+    };
+
+    img.onerror = function () {
+        console.warn('Failed to load OSD preview font:', font.path);
+        FONT.previewFont.image = null;
+        FONT.previewFont.imageLoaded = false;
+    };
+
+    img.src = font.path;
+};
+
+FONT.setPreviewFont = function (key) {
+    if (!FONT.previewFont.fonts[key]) {
+        key = 'default';
+    }
+
+    FONT.previewFont.key = key;
+    store.set('osdPreviewFont', key);
+    FONT.loadPreviewFont();
+};
+
+FONT.drawAvatarPreviewGlyph = function (charAddress, outputWidth, outputHeight, cacheSuffix) {
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+
+    if (!font || font.type !== 'avatar_png' || !FONT.previewFont.imageLoaded || !FONT.previewFont.image) {
+        return FONT.draw(charAddress);
+    }
+
+    const cacheKey = FONT.previewFont.key + ':' + cacheSuffix + ':' + charAddress;
+
+    if (FONT.previewFont.cache[cacheKey]) {
+        return FONT.previewFont.cache[cacheKey];
+    }
+
+    const page = charAddress >= 256 ? 1 : 0;
+    const row = charAddress % 256;
+    const sx = page * font.glyphWidth;
+    const sy = row * font.glyphHeight;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+        FONT.previewFont.image,
+        sx,
+        sy,
+        font.glyphWidth,
+        font.glyphHeight,
+        0,
+        0,
+        outputWidth,
+        outputHeight
+    );
+
+    const dataUrl = canvas.toDataURL('image/png');
+    FONT.previewFont.cache[cacheKey] = dataUrl;
+
+    return dataUrl;
+};
+
+FONT.drawPreview = function (charAddress) {
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+    const isFullscreenPreview = typeof OSD !== 'undefined'
+        && OSD.GUI
+        && OSD.GUI.fullscreenPreview
+        && OSD.GUI.fullscreenPreview.isOpen
+        && font
+        && font.type === 'avatar_png';
+
+    if (isFullscreenPreview) {
+        return FONT.drawAvatarPreviewGlyph(
+            charAddress,
+            font.glyphWidth,
+            font.glyphHeight,
+            'fullscreen'
+        );
+    }
+
+    return FONT.drawAvatarPreviewGlyph(
+        charAddress,
+        FONT.constants.SIZES.CHAR_WIDTH,
+        FONT.constants.SIZES.CHAR_HEIGHT,
+        'compact'
+    );
+};
+
+FONT.drawPreviewNative = function (charAddress) {
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+
+    if (!font || font.type !== 'avatar_png') {
+        return FONT.draw(charAddress);
+    }
+
+    return FONT.drawAvatarPreviewGlyph(
+        charAddress,
+        font.glyphWidth,
+        font.glyphHeight,
+        'native'
+    );
 };
 
 // Returns the font data for a blank character
@@ -2791,6 +3283,110 @@ OSD.GUI.preview = {
     }
 };
 
+OSD.GUI.fullscreenPreview = {
+    isOpen: false,
+    placeholder: null,
+    layout: null
+};
+
+OSD.GUI.openFullscreenPreview = function () {
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+
+    if (!font || font.type !== 'avatar_png') {
+        GUI.log('Select an HD font file before opening fullscreen preview');
+        return;
+    }
+
+    if (!FONT.previewFont.imageLoaded) {
+        GUI.log('HD font file is still loading');
+        return;
+    }
+
+    const $layout = $('.gui_box.preview > .display-layout');
+
+    if (!$layout.length) {
+        return;
+    }
+
+    OSD.GUI.fullscreenPreview.isOpen = true;
+    OSD.GUI.fullscreenPreview.layout = $layout;
+    OSD.GUI.fullscreenPreview.placeholder = $('<div id="osdFullscreenPreviewPlaceholder"></div>');
+
+    $layout.before(OSD.GUI.fullscreenPreview.placeholder);
+    $('#osdFullscreenPreviewOverlay').removeClass('hide');
+    $('#osdFullscreenPreviewTitle').text((font.sourceFile ? font.sourceFile + ' / ' : '') + font.label);
+    $('#osdFullscreenPreviewViewport').empty().append($layout);
+
+    OSD.GUI.updatePreviews();
+};
+
+OSD.GUI.closeFullscreenPreview = function () {
+    const $layout = OSD.GUI.fullscreenPreview.layout;
+    const $placeholder = OSD.GUI.fullscreenPreview.placeholder;
+
+    OSD.GUI.fullscreenPreview.isOpen = false;
+
+    if ($layout && $layout.length && $placeholder && $placeholder.length) {
+        $placeholder.before($layout);
+        $placeholder.remove();
+    }
+
+    OSD.GUI.fullscreenPreview.layout = null;
+    OSD.GUI.fullscreenPreview.placeholder = null;
+
+    $('#osdFullscreenPreviewOverlay').addClass('hide');
+    $('#osdFullscreenPreviewViewport')
+        .css({
+            '--osd-fullscreen-cell-width': '',
+            '--osd-fullscreen-cell-height': ''
+        });
+
+    OSD.GUI.updatePreviews();
+};
+
+OSD.GUI.updateFullscreenPreviewScale = function () {
+    if (!OSD.GUI.fullscreenPreview.isOpen || !OSD.data || !OSD.data.display_size) {
+        return;
+    }
+
+    const font = FONT.previewFont.fonts[FONT.previewFont.key];
+    const $viewport = $('#osdFullscreenPreviewViewport');
+    const $layout = $('#osdFullscreenPreviewViewport .display-layout');
+
+    if (!font || font.type !== 'avatar_png' || !$viewport.length || !$layout.length) {
+        return;
+    }
+
+    const cols = OSD.data.display_size.x;
+    const rows = OSD.data.display_size.y;
+    const baseWidth = cols * font.glyphWidth;
+    const baseHeight = rows * font.glyphHeight;
+    const availableWidth = $viewport.innerWidth();
+    const availableHeight = $viewport.innerHeight();
+
+    if (!baseWidth || !baseHeight || !availableWidth || !availableHeight) {
+        return;
+    }
+
+    const scale = Math.min(availableWidth / baseWidth, availableHeight / baseHeight, 1);
+    const cellWidth = Math.max(1, font.glyphWidth * scale);
+    const cellHeight = Math.max(1, font.glyphHeight * scale);
+
+    $viewport.css({
+        '--osd-fullscreen-cell-width': cellWidth + 'px',
+        '--osd-fullscreen-cell-height': cellHeight + 'px'
+    });
+
+    $layout.css({
+        width: (cols * cellWidth) + 'px',
+        height: (rows * cellHeight) + 'px'
+    });
+};
+
+OSD.GUI.renderFullscreenPreview = function () {
+    OSD.GUI.updateFullscreenPreviewScale();
+};
+
 OSD.GUI.checkAndProcessSymbolPosition = function(pos, charCode) {
     if (typeof OSD.data.preview[pos] === 'object' && OSD.data.preview[pos][0] !== null) {
         // position already in use, always put object item at position
@@ -3270,7 +3866,7 @@ OSD.GUI.updatePreviews = function() {
                 }
                 // draw the preview
                 var img = new Image();
-                img.src = FONT.draw(charCode);
+                img.src = FONT.drawPreview(charCode);
                 ctx.drawImage(img, x*FONT.constants.SIZES.CHAR_WIDTH, y*FONT.constants.SIZES.CHAR_HEIGHT);
                 x++;
             }
@@ -3350,7 +3946,7 @@ OSD.GUI.updatePreviews = function() {
                     colorStyle = 'style="background-color: ' + OSD.data.preview[i][2] + ';"';
                 }
             }
-            var $img = $('<div class="char"' + colorStyle + '><img src=' + FONT.draw(charCode) + '></img></div>')
+            var $img = $('<div class="char"' + colorStyle + '><img src=' + FONT.drawPreview(charCode) + '></img></div>')
                 .on('mouseenter', OSD.GUI.preview.onMouseEnter)
                 .on('mouseleave', OSD.GUI.preview.onMouseLeave)
                 .on('dragover', OSD.GUI.preview.onDragOver)
@@ -3382,6 +3978,8 @@ OSD.GUI.updatePreviews = function() {
                 $row = $('<div class="row"/>');
             }
         }
+
+        OSD.GUI.renderFullscreenPreview();
     }
 };
 
@@ -3669,6 +4267,50 @@ TABS.osd.initialize = function (callback) {
 
             //  init structs once, also clears current font
             FONT.initData();
+            FONT.loadImportedPreviewFonts();
+
+            FONT.previewFont.key = store.get('osdPreviewFont', 'default');
+
+            if (!FONT.previewFont.fonts[FONT.previewFont.key]) {
+                FONT.previewFont.key = 'default';
+            }
+
+            FONT.populatePreviewFontSelect();
+            FONT.loadPreviewFont();
+
+            $('#osdPreviewFontSelect').off('change.osdPreviewFont').on('change.osdPreviewFont', function () {
+                FONT.setPreviewFont($(this).val());
+            });
+
+            $('#osdImportHdFontPack').off('click.osdImportHdFontPack').on('click.osdImportHdFontPack', function (e) {
+                e.preventDefault();
+                FONT.importHdFontPack();
+            });
+
+            $('#osdRemoveHdFontPack').off('click.osdRemoveHdFontPack').on('click.osdRemoveHdFontPack', function (e) {
+                e.preventDefault();
+                FONT.removeSelectedImportedPreviewFont();
+            });
+
+            $('#osdFullscreenPreview').off('click.osdFullscreenPreview').on('click.osdFullscreenPreview', function (e) {
+                e.preventDefault();
+                OSD.GUI.openFullscreenPreview();
+            });
+
+            $('#osdFullscreenPreviewClose').off('click.osdFullscreenPreviewClose').on('click.osdFullscreenPreviewClose', function (e) {
+                e.preventDefault();
+                OSD.GUI.closeFullscreenPreview();
+            });
+
+            $(window).off('resize.osdFullscreenPreview').on('resize.osdFullscreenPreview', function () {
+                OSD.GUI.updateFullscreenPreviewScale();
+            });
+
+            $(document).off('keyup.osdFullscreenPreview').on('keyup.osdFullscreenPreview', function (e) {
+                if (e.key === 'Escape') {
+                    OSD.GUI.closeFullscreenPreview();
+                }
+            });
 
             var $fontPicker = $('.fontbuttons button');
             $fontPicker.on('click', function () {
