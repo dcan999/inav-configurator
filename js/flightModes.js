@@ -300,6 +300,16 @@ var FLIGHT_MODES = [
         boxId: 59,
         boxName: "GIMBAL HEADTRACKER",
         permanentId: 68
+    },
+    {
+        boxId: 60,
+        boxName: "Airspeed Auto Throttle",
+        permanentId: 69
+    },
+    {
+        boxId: 61,
+        boxName: "Ground Speed Auto Throttle",
+        permanentId: 70
     }
 ];
 

@@ -26,8 +26,22 @@ function padZeros(val, length) {
 var Settings = (function () {
     let self = {};
 
-    self.fillSelectOption = function(s, ii) {
-        var name = (s.setting.table ? s.setting.table.values[ii] : null);
+    const customSelectOptionMessages = {
+        nav_fw_airspeed_cruise_response: {
+            0: 'airspeedCruiseResponseSmooth',
+            1: 'airspeedCruiseResponseNormal',
+            2: 'airspeedCruiseResponseAggressive',
+            3: 'Custom',
+        },
+    };
+
+    self.fillSelectOption = function(s, ii, settingName) {
+        var customSelectOption = customSelectOptionMessages[settingName];
+        var name = customSelectOption ? customSelectOption[ii] : null;
+
+        if (!name) {
+            name = (s.setting.table ? s.setting.table.values[ii] : null);
+        }
         if (name) {
             var localizedName = i18n.getMessage(name);
             if (localizedName) {
@@ -102,14 +116,14 @@ var Settings = (function () {
                         if (input.data('setting-invert-select') === true) {
                             for (var ii = s.setting.max; ii >= s.setting.min; ii--) {
                                 option = null;
-                                option = self.fillSelectOption(s, ii);
+                                option = self.fillSelectOption(s, ii, settingName);
 
                                 option.appendTo(input);
                             }
                         } else {
                             for (var ii = s.setting.min; ii <= s.setting.max; ii++) {
                                 option = null;
-                                option = self.fillSelectOption(s, ii);
+                                option = self.fillSelectOption(s, ii, settingName);
 
                                 option.appendTo(input);
                             }

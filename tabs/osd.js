@@ -19,7 +19,9 @@ import store from './../js/store';
 import dialog from './../js/dialog';
 
 var SYM = SYM || {};
-SYM.LAST_CHAR = 225; // For drawing the font preview
+SYM.LAST_CHAR = 226; // For drawing the font preview
+SYM.SET_SPD = 0xE1;
+SYM.GND_SPD = 0xE2;
 SYM.BLANK = 0x20;
 SYM.MILLIOHM = 0x62;
 SYM.BATT = 0x63;
@@ -1074,6 +1076,28 @@ OSD.constants = {
                         }
 
                         return FONT.symbol(SYM.MIN_GND_SPEED) + speed;
+                    }
+                },
+                {
+                    name: 'NAV_SPEED_AUTOTHROTTLE',
+                    id: 169,
+                    preview: function(osd_data) {
+                        var speed;
+                        switch (OSD.data.preferences.units) {
+                            case 0: // Imperial
+                            case 2: // Metric + MPH
+                            case 3: // UK
+                                speed = '080' + FONT.symbol(SYM.MPH);
+                                break;
+                            case 4: // GA
+                                speed = '070' + FONT.symbol(SYM.KT);
+                                break;
+                            default: // Metric
+                                speed = '080' + FONT.symbol(SYM.KMH);
+                                break;
+                        }
+
+                        return FONT.symbol(SYM.SET_SPD) + speed + FONT.symbol(SYM.GND_SPD);
                     }
                 },
                 {
@@ -4323,3 +4347,4 @@ TABS.osd.cleanup = function (callback) {
 
     if (callback) callback();
 };
+

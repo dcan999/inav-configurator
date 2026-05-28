@@ -55,7 +55,7 @@ TABS.auxiliary.initialize = function (callback) {
         modeSections["Arming"] = ["ARM", "PREARM"];
         modeSections["Flight Modes"] = ["ANGLE", "HORIZON", "MANUAL", "ANGLE HOLD"];
         modeSections["Navigation Modes"] = ["NAV COURSE HOLD", "NAV CRUISE", "NAV POSHOLD", "NAV RTH", "NAV WP", "GCS NAV"];
-        modeSections["Flight Mode Modifiers"] = ["NAV ALTHOLD", "HEADING HOLD", "AIR MODE", "SOARING", "SURFACE", "TURN ASSIST"];
+        modeSections["Flight Mode Modifiers"] = ["NAV ALTHOLD", "HEADING HOLD", "AIR MODE", "Airspeed Auto Throttle", "Ground Speed Auto Throttle", "SOARING", "SURFACE", "TURN ASSIST"];
         modeSections["Fixed Wing"] = ["AUTO TUNE", "SERVO AUTOTRIM", "AUTO LEVEL TRIM", "NAV LAUNCH", "LOITER CHANGE", "FLAPERON"];
         modeSections["Multi-rotor"] = ["FPV ANGLE MIX", "TURTLE", "MC BRAKING", "HEADFREE", "HEADADJ"];
         modeSections["OSD Modes"] = ["OSD OFF", "OSD ALT 1", "OSD ALT 2", "OSD ALT 3"];
@@ -527,3 +527,4 @@ TABS.auxiliary.cleanup = function (callback) {
 $(window).on('resize', function(){
     $(".tab-auxiliary .acroEnabled").width($("#mode-0 .info").width());
 });
+

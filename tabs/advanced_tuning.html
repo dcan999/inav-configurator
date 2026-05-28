@@ -263,6 +263,82 @@
 
                     </div>
                 </div>
+                        <div class="config-section gui_box grey">
+                    <div class="gui_box_titlebar">
+                        <div class="spacer_box_title" data-i18n="airspeedCruiseAssistConfiguration"></div>
+                    </div>
+                    <div class="spacer_box">
+                        <div class="number">
+                            <input type="number" id="airspeedCruiseSpeed" data-unit="cms" data-setting="nav_fw_airspeed_cruise_speed" data-setting-multiplier="1" step="1" min="0" max="65535" />
+                            <label for="airspeedCruiseSpeed"><span data-i18n="airspeedCruiseSpeed"></span></label>
+                            <div for="airspeedCruiseSpeed" class="helpicon cf_tip" data-i18n_title="airspeedCruiseSpeedHelp"></div>
+                        </div>
+
+                        <div class="number">
+                            <input type="number" id="airspeedMinSpeed" data-unit="cms" data-setting="nav_fw_airspeed_min_speed" data-setting-multiplier="1" step="1" min="0" max="65535" />
+                            <label for="airspeedMinSpeed"><span data-i18n="airspeedMinSpeed"></span></label>
+                            <div for="airspeedMinSpeed" class="helpicon cf_tip" data-i18n_title="airspeedMinSpeedHelp"></div>
+                        </div>
+
+                        <div class="select">
+                            <select id="airspeedCruiseResponse" data-setting="nav_fw_airspeed_cruise_response"></select>
+                            <label for="airspeedCruiseResponse"><span data-i18n="airspeedCruiseResponse"></span></label>
+                            <div for="airspeedCruiseResponse" class="helpicon cf_tip" data-i18n_title="airspeedCruiseResponseHelp"></div>
+                        </div>
+
+                        <div class="number">
+                            <input type="number" id="airspeedCruiseAuthority" data-unit="us" data-setting="nav_fw_airspeed_cruise_authority" data-setting-multiplier="1" step="1" min="0" max="500" />
+                            <label for="airspeedCruiseAuthority"><span data-i18n="airspeedCruiseAuthority"></span></label>
+                            <div for="airspeedCruiseAuthority" class="helpicon cf_tip" data-i18n_title="airspeedCruiseAuthorityHelp"></div>
+                        </div>
+
+
+                        <details class="airspeed-advanced-pid-adjustment">
+                            <summary class="airspeed-advanced-pid-summary" style="display:flex; align-items:center; gap:8px; margin:10px 0; padding:8px 10px; border:1px solid rgba(0,0,0,0.25); border-radius:4px; background:rgba(0,0,0,0.08); cursor:pointer; font-weight:600; user-select:none;" title="Show or hide raw NAV Speed AutoThrottle tuning values">
+                                <span class="airspeed-advanced-pid-arrow">▶</span>
+                                <span>Advanced PID-FF Adjustment</span>
+                            </summary>
+
+                            <div class="airspeed-advanced-pid-fields" style="padding:2px 0 0 12px;">
+                                <div class="number">
+                                    <input type="number" id="airspeedCruisePGain" data-setting="nav_fw_airspeed_cruise_p_gain" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruisePGain"><span>P Assist Gain</span></label>
+                                    <div for="airspeedCruisePGain" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_p_gain. Immediate throttle correction from airspeed error. Use response = Custom while tuning."></div>
+                                </div>
+
+                                <div class="number">
+                                    <input type="number" id="airspeedCruiseIGain" data-setting="nav_fw_airspeed_cruise_i_gain" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruiseIGain"><span>I Learn Rate</span></label>
+                                    <div for="airspeedCruiseIGain" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_i_gain. Integrator learning rate for the sustained throttle correction. Use response = Custom while tuning."></div>
+                                </div>
+
+                                <div class="number">
+                                    <input type="number" id="airspeedCruiseDGain" data-setting="nav_fw_airspeed_cruise_d_gain" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruiseDGain"><span>D Damping Gain</span></label>
+                                    <div for="airspeedCruiseDGain" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_d_gain. Small damping based on raw airspeed rate of change. Use response = Custom while tuning."></div>
+                                </div>
+
+                                <div class="number">
+                                    <input type="number" id="airspeedCruiseFFGain" data-setting="nav_fw_airspeed_cruise_ff_gain" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruiseFFGain"><span>FF Closure Gain</span></label>
+                                    <div for="airspeedCruiseFFGain" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_ff_gain. Feed-forward/lead term based on how quickly airspeed is closing on the target. Use response = Custom while tuning."></div>
+                                </div>
+
+                                <div class="number">
+                                    <input type="number" id="airspeedCruiseSlewRate" data-setting="nav_fw_airspeed_cruise_slew_rate" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruiseSlewRate"><span>Throttle Change Rate (us/s)</span></label>
+                                    <div for="airspeedCruiseSlewRate" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_slew_rate. Maximum auto-throttle change rate in microseconds per second. Higher values allow faster throttle movement. Use response = Custom while tuning."></div>
+                                </div>
+
+                                <div class="number">
+                                    <input type="number" id="airspeedCruiseDecayRate" data-setting="nav_fw_airspeed_cruise_decay_rate" data-setting-multiplier="1" step="1" min="0" max="10000" />
+                                    <label for="airspeedCruiseDecayRate"><span>I Decay / Bleed Rate</span></label>
+                                    <div for="airspeedCruiseDecayRate" class="helpicon cf_tip" title="CLI: nav_fw_airspeed_cruise_decay_rate. Higher values bleed stale integrator correction faster near/crossing target. Use response = Custom while tuning."></div>
+                                </div>
+                            </div>
+                        </details>
+                        </div>                    </div>
+                </div>
             </div>
             <!-- right wrapper -->
 

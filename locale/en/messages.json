@@ -3458,6 +3458,42 @@
     "powerConfiguration": {
         "message": "Battery Estimation Settings"
     },
+    "airspeedCruiseAssistConfiguration": {
+        "message": "NAV Speed AutoThrottle"
+    },
+    "airspeedCruiseSpeed": {
+        "message": "Target Speed"
+    },
+    "airspeedCruiseSpeedHelp": {
+        "message": "Starting target speed for NAV Speed AutoThrottle. The NAV SPEED AUTOTHROTTLE mode enables control; the GROUNDSPEED mode selects horizontal GPS groundspeed instead of pitot/virtual-pitot airspeed. Internally stored in cm/s."
+    },
+    "airspeedMinSpeed": {
+        "message": "Minimum Airspeed"
+    },
+    "airspeedMinSpeedHelp": {
+        "message": "Minimum airspeed guard for NAV Speed AutoThrottle. Airspeed source targets at least this value; GROUNDSPEED source uses it as an airspeed safety floor when pitot/virtual airspeed is available. Set to 0 to disable the airspeed guard."
+    },
+    "airspeedCruiseResponse": {
+        "message": "Response"
+    },
+    "airspeedCruiseResponseHelp": {
+        "message": "Throttle response preset for NAV Speed AutoThrottle. Smooth is slower, Normal is the default, Aggressive reacts faster, and Custom uses the Advanced PID-FF Adjustment values."
+    },
+    "airspeedCruiseResponseSmooth": {
+        "message": "Smooth"
+    },
+    "airspeedCruiseResponseNormal": {
+        "message": "Normal"
+    },
+    "airspeedCruiseResponseAggressive": {
+        "message": "Aggressive"
+    },
+    "airspeedCruiseAuthority": {
+        "message": "Throttle Authority"
+    },
+    "airspeedCruiseAuthorityHelp": {
+        "message": "Maximum auto-throttle authority around normal NAV cruise throttle, in PWM microseconds. Auto-throttle is constrained by nav_fw_cruise_thr ± this value and also by nav_fw_min_thr/nav_fw_max_thr."
+    },
     "idlePower": {
         "message": "Idle power"
     },
@@ -4012,6 +4048,12 @@
     },
     "osdElement_SCALED_THROTTLE_POSITION_HELP": {
         "message": "Shows the throttle stick position in flight modes where <i>it</i> controls the throttle output. On navigation modes, it shows the throttle value commanded by INAV. This throttle is scaled based on the idle throttle and max throttle."
+    },
+    "osdElement_NAV_SPEED_AUTOTHROTTLE": {
+        "message": "NAV Speed Set"
+    },
+    "osdElement_NAV_SPEED_AUTOTHROTTLE_HELP": {
+        "message": "Shows the selected SPEED SET target while NAV Speed AutoThrottle is active. The field is blank when the mode is inactive."
     },
     "osdElement_GPS_SPEED": {
         "message": "Ground Speed"
