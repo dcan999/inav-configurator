@@ -811,6 +811,10 @@
     padding: 8px;
 }
 
+.tab-osd .osd-fullscreen-preview-overlay.hide {
+    display: none !important;
+}
+
 .tab-osd .osd-fullscreen-preview-titlebar {
     height: 28px;
     line-height: 24px;
@@ -837,50 +841,45 @@
     overflow: hidden;
 }
 
-.tab-osd .osd-fullscreen-preview-scale {
-    transform-origin: top left;
-}
-
-.tab-osd .osd-fullscreen-preview-grid {
-    background: url(./../../../images/osd-bg-1.jpg) center center / cover no-repeat;
-    line-height: 0;
-}
-
-.tab-osd .osd-fullscreen-preview-grid .char[draggable="true"] {
-    cursor: move;
-}
-
-
-/* Fullscreen HD OSD preview reuses the normal preview grid instead of cloning it.
- * The cell size is set from the selected font file and fitted to the viewport.
- */
-.osd-fullscreen-preview-overlay .display-layout {
+.tab-osd .osd-fullscreen-preview-viewport .display-layout {
     margin: 0 auto;
 }
 
-.osd-fullscreen-preview-overlay .display-layout > .col.right {
+.tab-osd .osd-fullscreen-preview-viewport .display-layout > .col.right {
     float: none;
     margin: 0;
 }
 
-.osd-fullscreen-preview-overlay .display-layout .preview {
+.tab-osd .osd-fullscreen-preview-viewport .display-layout > .col:not(.right),
+.tab-osd .osd-fullscreen-preview-viewport .third_left,
+.tab-osd .osd-fullscreen-preview-viewport .third_right,
+.tab-osd .osd-fullscreen-preview-viewport .preview_avatar_side,
+.tab-osd .osd-fullscreen-preview-viewport .preview_dji_hd_side,
+.tab-osd .osd-fullscreen-preview-viewport .preview_hdzero_side,
+.tab-osd .osd-fullscreen-preview-viewport .preview_bfhdcompat_side {
+    display: none !important;
+}
+
+.tab-osd .osd-fullscreen-preview-viewport .preview {
     width: max-content !important;
+    margin: 0 auto !important;
+    float: none !important;
     background: url(./../../../images/osd-bg-1.jpg) center center / cover no-repeat !important;
 }
 
-.osd-fullscreen-preview-overlay .display-layout .preview .row {
+.tab-osd .osd-fullscreen-preview-viewport .preview .row {
     height: var(--osd-fullscreen-cell-height);
     line-height: 0;
     white-space: nowrap;
 }
 
-.osd-fullscreen-preview-overlay .display-layout .preview .char {
+.tab-osd .osd-fullscreen-preview-viewport .preview .char {
     width: var(--osd-fullscreen-cell-width);
     height: var(--osd-fullscreen-cell-height);
     line-height: 0;
 }
 
-.osd-fullscreen-preview-overlay .display-layout .preview .char img {
+.tab-osd .osd-fullscreen-preview-viewport .preview .char img {
     width: var(--osd-fullscreen-cell-width);
     height: var(--osd-fullscreen-cell-height);
 }

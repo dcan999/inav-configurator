@@ -3289,6 +3289,24 @@ OSD.GUI.fullscreenPreview = {
     layout: null
 };
 
+OSD.GUI.resetFullscreenPreviewVisualState = function () {
+    $('.tab-osd')
+        .removeClass('osd-fullscreen-preview-active')
+        .css({
+            '--osd-fullscreen-cell-width': '',
+            '--osd-fullscreen-cell-height': ''
+        });
+
+    $('#osdFullscreenPreviewOverlay').addClass('hide').hide();
+
+    $('#osdFullscreenPreviewViewport')
+        .empty()
+        .css({
+            '--osd-fullscreen-cell-width': '',
+            '--osd-fullscreen-cell-height': ''
+        });
+};
+
 OSD.GUI.openFullscreenPreview = function () {
     const font = FONT.previewFont.fonts[FONT.previewFont.key];
 
@@ -3302,6 +3320,12 @@ OSD.GUI.openFullscreenPreview = function () {
         return;
     }
 
+    if (OSD.GUI.fullscreenPreview.isOpen) {
+        OSD.GUI.closeFullscreenPreview();
+    } else {
+        OSD.GUI.resetFullscreenPreviewVisualState();
+    }
+
     const $layout = $('.gui_box.preview > .display-layout');
 
     if (!$layout.length) {
@@ -3313,7 +3337,8 @@ OSD.GUI.openFullscreenPreview = function () {
     OSD.GUI.fullscreenPreview.placeholder = $('<div id="osdFullscreenPreviewPlaceholder"></div>');
 
     $layout.before(OSD.GUI.fullscreenPreview.placeholder);
-    $('#osdFullscreenPreviewOverlay').removeClass('hide');
+
+    $('#osdFullscreenPreviewOverlay').removeClass('hide').show();
     $('#osdFullscreenPreviewTitle').text((font.sourceFile ? font.sourceFile + ' / ' : '') + font.label);
     $('#osdFullscreenPreviewViewport').empty().append($layout);
 
@@ -3321,27 +3346,51 @@ OSD.GUI.openFullscreenPreview = function () {
 };
 
 OSD.GUI.closeFullscreenPreview = function () {
-    const $layout = OSD.GUI.fullscreenPreview.layout;
-    const $placeholder = OSD.GUI.fullscreenPreview.placeholder;
+    const $viewport = $('#osdFullscreenPreviewViewport');
+    const $storedLayout = OSD.GUI.fullscreenPreview.layout;
+    const $storedPlaceholder = OSD.GUI.fullscreenPreview.placeholder;
+    const $layout = ($storedLayout && $storedLayout.length) ? $storedLayout : $viewport.find('.display-layout');
+    const $placeholder = ($storedPlaceholder && $storedPlaceholder.length) ? $storedPlaceholder : $('#osdFullscreenPreviewPlaceholder');
 
     OSD.GUI.fullscreenPreview.isOpen = false;
 
-    if ($layout && $layout.length && $placeholder && $placeholder.length) {
-        $placeholder.before($layout);
+    if ($layout && $layout.length) {
+        $layout.css({
+            position: '',
+            left: '',
+            top: '',
+            width: '',
+            height: ''
+        });
+
+        $layout.find('> .col.right').css({
+            width: '',
+            height: ''
+        });
+
+        if ($placeholder && $placeholder.length) {
+            $placeholder.replaceWith($layout);
+        } else if (!$('.gui_box.preview > .display-layout').length) {
+            $('.gui_box.preview > .gui_box_titlebar').after($layout);
+        }
+    }
+
+    if ($placeholder && $placeholder.length) {
         $placeholder.remove();
     }
 
     OSD.GUI.fullscreenPreview.layout = null;
     OSD.GUI.fullscreenPreview.placeholder = null;
 
-    $('#osdFullscreenPreviewOverlay').addClass('hide');
-    $('#osdFullscreenPreviewViewport')
-        .css({
-            '--osd-fullscreen-cell-width': '',
-            '--osd-fullscreen-cell-height': ''
-        });
-
+    OSD.GUI.resetFullscreenPreviewVisualState();
     OSD.GUI.updatePreviews();
+
+    setTimeout(function () {
+        if (!OSD.GUI.fullscreenPreview.isOpen) {
+            OSD.GUI.resetFullscreenPreviewVisualState();
+            OSD.GUI.updatePreviews();
+        }
+    }, 0);
 };
 
 OSD.GUI.updateFullscreenPreviewScale = function () {
@@ -3801,6 +3850,10 @@ OSD.GUI.updateMapPreview = function(mapCenter, name, directionSymbol, centerSymb
 OSD.GUI.updatePreviews = function() {
     if (!OSD.data) {
         return;
+    }
+
+    if (!OSD.GUI.fullscreenPreview.isOpen) {
+        OSD.GUI.resetFullscreenPreviewVisualState();
     }
     // buffer the preview;
     OSD.data.preview = [];
