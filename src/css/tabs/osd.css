@@ -883,3 +883,23 @@
     width: var(--osd-fullscreen-cell-width);
     height: var(--osd-fullscreen-cell-height);
 }
+
+
+/* Fullscreen guide scaling reuses the selected video-format preview, but the
+ * normal preview classes also carry compact left/right offsets.  Neutralize
+ * those offsets in fullscreen so the video frame and guides share one origin.
+ */
+.tab-osd .osd-fullscreen-preview-viewport .display-layout,
+.tab-osd .osd-fullscreen-preview-viewport .display-layout > .col.right {
+    position: relative !important;
+}
+
+.tab-osd .osd-fullscreen-preview-viewport .preview {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    margin: 0 auto !important;
+    float: none !important;
+}

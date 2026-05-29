@@ -3286,10 +3286,90 @@ OSD.GUI.preview = {
 OSD.GUI.fullscreenPreview = {
     isOpen: false,
     placeholder: null,
-    layout: null
+    layout: null,
+    guides: []
+};
+
+
+OSD.GUI.captureFullscreenGuideMetrics = function ($layout) {
+    const $preview = $layout.find('.preview');
+
+    if (!$preview.length || !$preview[0]) {
+        OSD.GUI.fullscreenPreview.guides = [];
+        return;
+    }
+
+    const previewRect = $preview[0].getBoundingClientRect();
+    const guides = [];
+
+    $layout.find('> .col.right > div:not(.preview)').each(function () {
+        const rect = this.getBoundingClientRect();
+        const style = window.getComputedStyle(this);
+        const hasVisibleBox = rect.width > 0 || rect.height > 0;
+        const hasVisibleBorder = parseFloat(style.borderTopWidth) > 0
+            || parseFloat(style.borderRightWidth) > 0
+            || parseFloat(style.borderBottomWidth) > 0
+            || parseFloat(style.borderLeftWidth) > 0;
+        const overlapsPreview = rect.right >= previewRect.left
+            && rect.left <= previewRect.right
+            && rect.bottom >= previewRect.top
+            && rect.top <= previewRect.bottom;
+
+        if (style.display === 'none' || style.visibility === 'hidden' || !hasVisibleBox || !hasVisibleBorder || !overlapsPreview) {
+            return;
+        }
+
+        guides.push({
+            element: this,
+            style: this.getAttribute('style'),
+            left: rect.left - previewRect.left,
+            top: rect.top - previewRect.top,
+            width: rect.width,
+            height: rect.height,
+            previewWidth: previewRect.width,
+            previewHeight: previewRect.height
+        });
+    });
+
+    OSD.GUI.fullscreenPreview.guides = guides;
+};
+
+OSD.GUI.applyFullscreenGuideMetrics = function (frameWidth, frameHeight) {
+    (OSD.GUI.fullscreenPreview.guides || []).forEach(function (guide) {
+        const scaleX = guide.previewWidth ? frameWidth / guide.previewWidth : 1;
+        const scaleY = guide.previewHeight ? frameHeight / guide.previewHeight : 1;
+
+        $(guide.element).css({
+            position: 'absolute',
+            left: (guide.left * scaleX) + 'px',
+            top: (guide.top * scaleY) + 'px',
+            right: 'auto',
+            bottom: 'auto',
+            width: Math.max(1, guide.width * scaleX) + 'px',
+            height: Math.max(1, guide.height * scaleY) + 'px',
+            pointerEvents: 'none',
+            zIndex: 2
+        });
+    });
+};
+
+OSD.GUI.restoreFullscreenGuideMetrics = function () {
+    (OSD.GUI.fullscreenPreview.guides || []).forEach(function (guide) {
+        if (guide.style === null) {
+            guide.element.removeAttribute('style');
+        } else {
+            guide.element.setAttribute('style', guide.style);
+        }
+    });
+
+    OSD.GUI.fullscreenPreview.guides = [];
 };
 
 OSD.GUI.resetFullscreenPreviewVisualState = function () {
+    if (OSD.GUI.fullscreenPreview && OSD.GUI.fullscreenPreview.guides && OSD.GUI.fullscreenPreview.guides.length) {
+        OSD.GUI.restoreFullscreenGuideMetrics();
+    }
+
     $('.tab-osd')
         .removeClass('osd-fullscreen-preview-active')
         .css({
@@ -3331,6 +3411,8 @@ OSD.GUI.openFullscreenPreview = function () {
     if (!$layout.length) {
         return;
     }
+
+    OSD.GUI.captureFullscreenGuideMetrics($layout);
 
     OSD.GUI.fullscreenPreview.isOpen = true;
     OSD.GUI.fullscreenPreview.layout = $layout;
@@ -3426,10 +3508,21 @@ OSD.GUI.updateFullscreenPreviewScale = function () {
         '--osd-fullscreen-cell-height': cellHeight + 'px'
     });
 
+    const frameWidth = cols * cellWidth;
+    const frameHeight = rows * cellHeight;
+
     $layout.css({
-        width: (cols * cellWidth) + 'px',
-        height: (rows * cellHeight) + 'px'
+        width: frameWidth + 'px',
+        height: frameHeight + 'px'
     });
+
+    $layout.find('> .col.right').css({
+        position: 'relative',
+        width: frameWidth + 'px',
+        height: frameHeight + 'px'
+    });
+
+    OSD.GUI.applyFullscreenGuideMetrics(frameWidth, frameHeight);
 };
 
 OSD.GUI.renderFullscreenPreview = function () {
