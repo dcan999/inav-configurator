@@ -292,6 +292,25 @@
                             <div for="airspeedCruiseAuthority" class="helpicon cf_tip" data-i18n_title="airspeedCruiseAuthorityHelp"></div>
                         </div>
 
+                        <div style="display:inline-block; width:auto; margin:8px 0 10px 0; padding:8px 14px 6px 8px; border:1px solid rgba(0,0,0,0.20); border-radius:4px; background:rgba(0,0,0,0.04);">
+                            <div style="font-weight:600; margin-bottom:4px;">
+                                <span>External Speed Set Channel</span>
+                                <div class="helpicon cf_tip" title="Uses the AUX channel assigned to NAV Speed Set Adjust in the Modes tab. When that mode is ON, the external channel sets SPEED SET and throttle-stick speed adjustment is disabled. When that mode is OFF, normal throttle-stick speed adjustment still works regardless of these endpoint values."></div>
+                            </div>
+
+                            <div class="number">
+                                <input type="number" id="navFwSpeedSetAdjustLow" data-unit="cms" data-setting="nav_fw_speed_set_adjust_low" data-setting-multiplier="1" step="1" min="0" max="65535" />
+                                <label for="navFwSpeedSetAdjustLow"><span>Set speed at 1000us</span></label>
+                                <div for="navFwSpeedSetAdjustLow" class="helpicon cf_tip" title="When NAV Speed Set Adjust is ON, this is the SPEED SET target at the low RC endpoint."></div>
+                            </div>
+
+                            <div class="number">
+                                <input type="number" id="navFwSpeedSetAdjustHigh" data-unit="cms" data-setting="nav_fw_speed_set_adjust_high" data-setting-multiplier="1" step="1" min="0" max="65535" />
+                                <label for="navFwSpeedSetAdjustHigh"><span>Set speed at 2000us</span></label>
+                                <div for="navFwSpeedSetAdjustHigh" class="helpicon cf_tip" title="When NAV Speed Set Adjust is ON, this is the SPEED SET target at the high RC endpoint. Values may be lower or higher than the 1000us value for reversed pots or sliders. While this mode is ON, throttle-stick speed adjustment is disabled, but idle and WOT override zones still work."></div>
+                            </div>
+                        </div>
+
 
                         <details class="airspeed-advanced-pid-adjustment">
                             <summary class="airspeed-advanced-pid-summary" style="display:flex; align-items:center; gap:8px; margin:10px 0; padding:8px 10px; border:1px solid rgba(0,0,0,0.25); border-radius:4px; background:rgba(0,0,0,0.08); cursor:pointer; font-weight:600; user-select:none;" title="Show or hide raw NAV Speed AutoThrottle tuning values">

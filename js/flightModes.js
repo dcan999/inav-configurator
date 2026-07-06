@@ -310,6 +310,11 @@ var FLIGHT_MODES = [
         boxId: 61,
         boxName: "Ground Speed Auto Throttle",
         permanentId: 70
+    },
+    {
+        boxId: 62,
+        boxName: "NAV Speed Set Adjust",
+        permanentId: 71
     }
 ];
 
